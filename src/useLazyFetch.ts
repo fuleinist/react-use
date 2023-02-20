@@ -26,17 +26,24 @@ export function useLazyFetch(url, options) {
     setLoading(true)
     try {
       let fetchUrl = url
+      let fetchOptions = {}
       //default method is GET
       const method = options?.method || 'GET'
       if (method === 'GET' && data) {
         fetchUrl = `${url}?${new URLSearchParams(data)}`
+        fetchOptions = {
+          ...options,
+          method,
+          signal
+        }
+      } else {
+        fetchOptions = {
+          ...options,
+          method,
+          signal
+        }
       }
-      const response = await fetch(fetchUrl, {
-        ...options,
-        method,
-        signal,
-        p: data,
-      })
+      const response = await fetch(fetchUrl, fetchOptions)
       const result = await response.json()
       setResult(result)
       setResponse(result)
