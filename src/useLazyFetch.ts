@@ -1,11 +1,13 @@
-import React, { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 
 // Create an instance.
 const controller = new AbortController()
 
-export function useLazyFetch(url: string, options: RequestInit) {
-  const [response, setResponse] = useState<Response>(null)
-  const [error, setError] = useState<Error>(null)
+export function useLazyFetch(url, options) {
+  const fetchRef = useRef()
+  const [response, setResponse] = useState(null)
+  const [result, setResult] = useState(null)
+  const [error, setError] = useState(null)
   const [loading, setLoading] = useState(false)
   const [called, setCalled] = useState(false)
   const signal = controller.signal
@@ -19,16 +21,28 @@ export function useLazyFetch(url: string, options: RequestInit) {
     }
   }, [])
 
-  const runFetch = async (data?: any) => {
+  const runFetch = async (data) => {
     setCalled(true)
     setLoading(true)
     try {
-      const result = await fetch(url, { ...options, signal, body: data })
-      console.log({ result })
+      let fetchUrl = url
+      //default method is GET
+      const method = options?.method || 'GET'
+      if (method === 'GET' && data) {
+        fetchUrl = `${url}?${new URLSearchParams(data)}`
+      }
+      const response = await fetch(fetchUrl, {
+        ...options,
+        method,
+        signal,
+        p: data,
+      })
+      const result = await response.json()
+      setResult(result)
       setResponse(result)
       setLoading(false)
     } catch (e) {
-      setError(e as Error)
+      setError(e)
       setResponse(null)
       setLoading(false)
     }
@@ -37,18 +51,11 @@ export function useLazyFetch(url: string, options: RequestInit) {
   return [
     runFetch,
     {
+      data: result,
       response,
       error,
       loading,
       called,
     },
-  ] as [
-    (data?: any) => Promise<void>,
-    {
-      response: Response
-      error: Error
-      loading: boolean
-      called: boolean
-    }
   ]
 }
